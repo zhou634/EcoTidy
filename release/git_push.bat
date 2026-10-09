@@ -65,6 +65,8 @@ if errorlevel 1 (
     echo.
     set GO=
     set /p GO=   仍要继续吗？(Y/N):
+    REM 注意：必须用 !GO! 而不是 %GO% —— 同一个括号块里"先设置再读取"时，
+    REM       %GO% 在解析阶段就展开成空值，按 Y 也进不去（实测踩坑）。
     if /i not "!GO!"=="Y" exit /b 1
 ) else (
     echo       端口在监听，OK
