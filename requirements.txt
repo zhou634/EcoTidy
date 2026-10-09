@@ -1,0 +1,35 @@
+# EcoTidy - dependency pins
+#
+# IMPORTANT: this file must stay ASCII-only.
+#   pip reads requirements files with the *locale* encoding on Windows (GBK on
+#   a Chinese system, not UTF-8). Chinese comments here made pip die with
+#   "UnicodeDecodeError: 'gbk' codec can't decode byte ..." before it even
+#   started resolving packages. See requirements-notes.md for the full notes.
+#
+# Target interpreter: Python >= 3.9, < 3.12
+#   Verified on 3.9.13 (all 454 tests pass). 3.10 / 3.11 also satisfy every
+#   pin below but have not been exercised. 3.12+ is NOT supported by
+#   PySide6 6.5.3 or PyInstaller 5.13.2.
+#
+# Install:
+#   "<path-to-python.exe>" -m pip install -r requirements.txt
+#   add -i https://pypi.tuna.tsinghua.edu.cn/simple if the default index is slow
+
+# --- GUI ---
+PySide6==6.5.3
+
+# --- data processing ---
+pandas==2.0.3
+numpy==1.24.4
+
+# --- plotting ---
+matplotlib==3.7.3
+
+# --- Excel I/O ---
+openpyxl==3.1.2
+
+# --- tests ---
+pytest==7.4.4
+
+# --- packaging (release stage only; not needed at runtime) ---
+pyinstaller==5.13.2

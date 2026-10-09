@@ -1,0 +1,69 @@
+# =============================================================================
+# Git 忽略清单（开发方案 第六章 阶段 0 要求）
+# 必须排除：temp/  __pycache__/  *.db  .vs/  build/  dist/
+# 注意：release/ 不排除 —— 里面放的是打包说明与图标生成脚本（工程资产）
+# 注意：static/ 为随包只读资源，必须入库，不得忽略。
+# =============================================================================
+
+# ---------- 运行时临时文件（方案第四章 TEMP_DIR） ----------
+temp/
+
+build/
+dist/
+*.spec
+
+# ---------- Python 字节码与缓存 ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- 数据库文件（方案要求库放 APPDATA，工程目录内一律不入库） ----------
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ---------- 便携模式数据目录 ----------
+# %APPDATA% 不可写的机器上，程序会把数据目录回退到工程根下的 .ecodata/
+# （见 utils/paths.py 的 _resolve_data_dir）。该目录只存运行时数据，不入库。
+.ecodata/
+
+# ---------- Visual Studio ----------
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+bin/
+obj/
+
+# ---------- 虚拟环境 ----------
+.venv/
+venv/
+env/
+env1/
+env2/
+ENV/
+# 说明：env1/ 是搭建开发环境时中途中断留下的残缺虚拟环境
+# （只剩一个被系统占用的 python.exe），一并忽略，避免误入库。
+
+# ---------- 偶发产物 ----------
+# matplotlib 在不设 MPLCONFIGDIR 时会在当前目录下建缓存
+.matplotlib/
+# pip 下载证书失败时留下的临时文件
+*.pem
+# 说明：pip 在项目根目录留下的证书临时文件（tmpXXXXcacert.pem），不应入库
+
+# ---------- 导出与测试产物 ----------
+*.log
+.pytest_tmp/
+tests/samples/_generated/
+
+# ---------- 操作系统 ----------
+Thumbs.db
+Desktop.ini
+desktop.ini
+.DS_Store
