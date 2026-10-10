@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoTidy · 生态数据清洗与分析</title>
+<meta name="description" content="EcoTidy —— 生态野外多源监测数据全自动清洗与标准化分析系统。适用于野外样方调查、传感器连续监测、室内控制实验三类数据，完全离线运行。">
+<style>
+/* ===========================================================================
+   EcoTidy 介绍页
+   配色与软件界面严格一致（取自 ui/style.py）：
+     正文 #1F2329 / 次要 #5A5F66 / 弱化 #8C9096
+     描边 #D8DADF / 浅分隔 #EDEEF0
+     纯白底 #FFFFFF / 浅灰底 #F6F7F8 / 悬浮 #EFEFF1
+   核心约定：**所有圆角为 0**，界面不出现彩色，层级靠灰度与 1px 描边拉开。
+   =========================================================================== */
+
+:root{
+  --text:#1F2329; --text-sub:#5A5F66; --text-weak:#8C9096;
+  --line:#D8DADF; --line-soft:#EDEEF0;
+  --bg:#FFFFFF; --bg-soft:#F6F7F8; --bg-hover:#EFEFF1;
+  --disabled:#C4C7CC;
+  --maxw:1080px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+  background:var(--bg); color:var(--text);
+  font-size:15px; line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+code{font-family:"Cascadia Mono",Consolas,"Courier New",monospace;background:var(--bg-soft);padding:1px 5px;font-size:.92em}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ---------- 顶部导航 ---------- */
+header{
+  position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--line);backdrop-filter:saturate(180%) blur(8px);
+}
+.nav{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em}
+.brand .mark{
+  width:26px;height:26px;background:var(--text);display:grid;place-items:center;
+  color:#fff;font-weight:800;font-size:15px;line-height:1;
+}
+.nav-links{display:flex;align-items:center;gap:22px;font-size:14px;color:var(--text-sub)}
+.nav-links a{transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.nav-links .dl{
+  background:var(--text);color:#fff;padding:7px 16px;font-size:13.5px;
+  transition:background .15s,transform .15s;
+}
+.nav-links .dl:hover{background:#000;color:#fff;transform:translateY(-1px)}
+
+/* ---------- 首屏 ---------- */
+.hero{padding:88px 0 72px;border-bottom:1px solid var(--line-soft)}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-sub);
+  border:1px solid var(--line);padding:4px 10px;margin-bottom:22px;
+}
+.badge .dot{
+  width:6px;height:6px;background:var(--text);
+  /* 直角方块，不用圆点 —— 软件全站圆角为 0，状态标记也用符号/方块表达 */
+  animation:pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.35;transform:scale(.72)}
+}
+h1{font-size:40px;line-height:1.25;font-weight:800;letter-spacing:-.01em;margin-bottom:18px}
+h1 .sub{display:block;font-size:15px;font-weight:400;color:var(--text-sub);letter-spacing:0;margin-top:12px;line-height:1.8}
+.hero-cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:30px}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;padding:13px 26px;font-size:15px;
+  font-weight:600;border:1px solid var(--text);cursor:pointer;
+  transition:transform .16s,box-shadow .16s,background .16s,color .16s;
+}
+.btn-primary{background:var(--text);color:#fff}
+.btn-primary:hover{background:#000;transform:translateY(-2px);box-shadow:0 6px 20px rgba(31,35,41,.18)}
+.btn-ghost{background:#fff;color:var(--text)}
+.btn-ghost:hover{background:var(--bg-hover);transform:translateY(-2px)}
+.meta{margin-top:16px;font-size:13px;color:var(--text-weak);display:flex;gap:16px;flex-wrap:wrap}
+
+/* 首屏右侧：模拟软件窗口 */
+.mock{
+  border:1px solid var(--line);background:#fff;
+  box-shadow:0 18px 48px rgba(31,35,41,.09);
+  transition:transform .3s;
+}
+.mock:hover{transform:translateY(-3px)}
+.mock-bar{
+  display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;
+  border-bottom:1px solid var(--line);background:var(--bg-soft);font-size:12px;color:var(--text-sub);
+}
+.mock-bar .sq{width:9px;height:9px;border:1px solid var(--line);background:#fff}
+.mock-body{padding:16px}
+.mock-title{font-size:13px;font-weight:700;margin-bottom:3px}
+.mock-desc{font-size:11.5px;color:var(--text-weak);margin-bottom:14px}
+.steps{display:flex;gap:5px;margin-bottom:16px;flex-wrap:wrap}
+.step{
+  font-size:11.5px;padding:5px 9px;border:1px solid var(--line);color:var(--text-sub);
+  white-space:nowrap;transition:all .2s;
+}
+.step.on{background:var(--text);color:#fff;border-color:var(--text)}
+.mock-btn{
+  font-size:11.5px;padding:6px 12px;background:var(--text);color:#fff;
+  display:inline-block;margin-bottom:14px;
+}
+.mock-canvas{
+  border:1px dashed var(--line);height:132px;display:flex;align-items:flex-end;
+  justify-content:center;gap:9px;padding:14px 16px;
+}
+.bar{width:26px;background:var(--text);transform-origin:bottom;animation:grow 1.4s cubic-bezier(.2,.8,.2,1) both}
+.bar.g{background:var(--bg-hover)}
+.bar.h{background:repeating-linear-gradient(45deg,var(--text) 0 2px,#fff 2px 5px)}
+@keyframes grow{from{transform:scaleY(0);opacity:.4}to{transform:scaleY(1);opacity:1}}
+.mock-foot{font-size:11px;color:var(--text-weak);margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft)}
+
+/* ---------- 通用分节 ---------- */
+section{padding:72px 0;border-bottom:1px solid var(--line-soft)}
+.sec-label{font-size:12.5px;color:var(--text-weak);letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
+h2{font-size:27px;font-weight:800;letter-spacing:-.01em;margin-bottom:14px}
+.sec-intro{color:var(--text-sub);max-width:660px;margin-bottom:40px}
+
+/* ---------- 五步流程 ---------- */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--line)}
+.flow-item{padding:22px 18px;border-right:1px solid var(--line);transition:background .2s;position:relative}
+.flow-item:last-child{border-right:0}
+.flow-item:hover{background:var(--bg-soft)}
+.flow-num{font-size:11.5px;color:var(--text-weak);margin-bottom:9px;font-weight:700}
+.flow-t{font-weight:700;font-size:14.5px;margin-bottom:7px}
+.flow-d{font-size:12.5px;color:var(--text-sub);line-height:1.65}
+
+/* ---------- 特性卡 ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{
+  border:1px solid var(--line);padding:24px 22px;background:#fff;
+  transition:transform .2s,box-shadow .2s,border-color .2s;
+}
+.card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(31,35,41,.08);border-color:var(--text-weak)}
+.card-t{font-weight:700;font-size:15.5px;margin-bottom:10px;display:flex;align-items:center;gap:9px}
+.card-t .n{
+  width:20px;height:20px;background:var(--text);color:#fff;font-size:11px;
+  display:grid;place-items:center;font-weight:700;flex:none;
+}
+.card-d{font-size:13.5px;color:var(--text-sub);line-height:1.7}
+
+/* ---------- 数据表 ---------- */
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:14px}
+.tbl th{
+  background:var(--bg-soft);text-align:left;padding:9px 12px;
+  border:1px solid var(--line);font-weight:700;
+}
+.tbl td{padding:9px 12px;border:1px solid var(--line)}
+.tbl td.req{font-weight:700}
+.tbl .tag{
+  display:inline-block;font-size:10.5px;font-weight:700;background:var(--text);color:#fff;
+  padding:1px 6px;margin-left:6px;vertical-align:1px;
+}
+.tbl .opt{color:var(--text-weak);font-size:12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+.mini{font-size:13px;color:var(--text-sub);margin-bottom:8px}
+.tip{
+  background:var(--bg-soft);border-left:4px solid var(--text);padding:11px 14px;
+  font-size:13px;color:var(--text-sub);margin-top:16px;
+}
+
+/* ---------- 配色演示 ---------- */
+.palettes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pal{border:1px solid var(--line);padding:16px;text-align:center;transition:transform .2s,box-shadow .2s}
+.pal:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(31,35,41,.08)}
+.pal-bars{display:flex;align-items:flex-end;justify-content:center;gap:7px;height:78px;margin-bottom:12px}
+.pal-bars i{width:20px;display:block;transform-origin:bottom;animation:grow 1.2s cubic-bezier(.2,.8,.2,1) both}
+.pal-n{font-size:13px;font-weight:700}
+.pal-d{font-size:12px;color:var(--text-weak);margin-top:3px}
+
+/* ---------- 下载区 ---------- */
+.download{background:var(--text);color:#fff;padding:64px 0;border-bottom:0}
+.download h2{color:#fff}
+.download .sec-intro{color:rgba(255,255,255,.72)}
+.dl-box{
+  border:1px solid rgba(255,255,255,.28);padding:28px 26px;display:flex;
+  align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;
+  transition:border-color .2s,background .2s;
+}
+.dl-box:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.04)}
+.dl-info{display:flex;align-items:center;gap:16px;min-width:260px}
+.dl-mark{width:44px;height:44px;background:#fff;color:var(--text);display:grid;place-items:center;font-weight:800;font-size:22px;flex:none}
+.dl-name{font-weight:700;font-size:16px}
+.dl-sub{font-size:12.5px;color:rgba(255,255,255,.6);margin-top:3px}
+.dl-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn-white{background:#fff;color:var(--text);border-color:#fff}
+.btn-white:hover{background:var(--bg-hover);transform:translateY(-2px)}
+.btn-line{background:transparent;color:#fff;border-color:rgba(255,255,255,.42)}
+.btn-line:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+.req-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid rgba(255,255,255,.2);margin-top:26px}
+.req-item{padding:16px 18px;border-right:1px solid rgba(255,255,255,.2)}
+.req-item:last-child{border-right:0}
+.req-k{font-size:11.5px;color:rgba(255,255,255,.55);margin-bottom:5px;letter-spacing:.05em}
+.req-v{font-size:13.5px;font-weight:600}
+
+/* ---------- 问答 ---------- */
+.faq{border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{
+  padding:16px 0;font-weight:600;cursor:pointer;list-style:none;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;transition:color .15s;
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:hover{color:#000}
+.faq summary::after{content:"+";font-size:19px;color:var(--text-weak);transition:transform .2s;flex:none}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq .ans{padding:0 0 18px;color:var(--text-sub);font-size:13.5px;max-width:760px}
+
+/* ---------- 页脚 ---------- */
+footer{padding:34px 0;font-size:12.5px;color:var(--text-weak)}
+.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.foot a:hover{color:var(--text)}
+
+/* ---------- 滚动入场 ---------- */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- 顶部下载进度条 ---------- */
+#prog{position:fixed;top:0;left:0;height:2px;background:var(--text);width:0;z-index:99;transition:width .1s linear}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:40px}
+  h1{font-size:31px}
+  .flow{grid-template-columns:1fr 1fr}
+  .flow-item{border-bottom:1px solid var(--line)}
+  .flow-item:nth-child(2n){border-right:0}
+  .cards,.palettes{grid-template-columns:1fr}
+  .two-col{grid-template-columns:1fr;gap:28px}
+  .req-grid{grid-template-columns:1fr 1fr}
+  .req-item:nth-child(2n){border-right:0}
+  .req-item{border-bottom:1px solid rgba(255,255,255,.2)}
+  .nav-links a:not(.dl){display:none}
+}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+
+<!-- ======================= 导航 ======================= -->
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top"><span class="mark">E</span>EcoTidy</a>
+    <nav class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#flow">流程</a>
+      <a href="#data">数据要求</a>
+      <a href="#palette">出图</a>
+      <a href="#faq">常见问题</a>
+      <a class="dl" href="#download">下载</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ======================= 首屏 ======================= -->
+<div id="top"></div>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="badge"><span class="dot"></span>Windows 离线单机版 · v1.0</div>
+      <h1>
+        生态数据清洗与分析，<br>五步走完。
+        <span class="sub">野外样方调查 · 传感器连续监测 · 室内控制实验 —— 三类数据的导入、清洗、指标计算、出图与报告导出，一个软件搞定。</span>
+      </h1>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#download">下载 EcoTidy</a>
+        <a class="btn btn-ghost" href="https://github.com/zhou634/EcoTidy" target="_blank" rel="noopener">查看源码</a>
+      </div>
+      <div class="meta">
+        <span>约 86 MB · 解压即用</span>
+        <span>无需安装 Python</span>
+        <span>不联网 · 不上传数据</span>
+      </div>
+    </div>
+
+    <!-- 模拟软件界面 -->
+    <div class="mock">
+      <div class="mock-bar"><span class="sq"></span><span class="sq"></span><span class="sq"></span>&nbsp;EcoTidy</div>
+      <div class="mock-body">
+        <div class="mock-title">④ 绘制图表</div>
+        <div class="mock-desc">按数据类型选择合适的图表，查看并导出高清图片</div>
+        <div class="steps">
+          <span class="step">① 导入数据</span>
+          <span class="step">② 清洗数据</span>
+          <span class="step">③ 计算指标</span>
+          <span class="step on">④ 绘制图表</span>
+          <span class="step">⑤ 导出报告</span>
+        </div>
+        <div class="mock-btn">绘制图表</div>
+        <div class="mock-canvas">
+          <i class="bar" style="height:52%;animation-delay:.05s"></i>
+          <i class="bar g" style="height:78%;animation-delay:.15s"></i>
+          <i class="bar h" style="height:38%;animation-delay:.25s"></i>
+          <i class="bar" style="height:90%;animation-delay:.35s"></i>
+          <i class="bar g" style="height:64%;animation-delay:.45s"></i>
+        </div>
+        <div class="mock-foot">图题：不同物种的株数（株）、树高分布　｜　中文字体：随包字体</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 解决什么问题 ======================= -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-label reveal">Why EcoTidy</div>
+    <h2 class="reveal">它解决什么问题</h2>
+    <p class="sec-intro reveal">野外数据的通病是"格式杂、脏、算起来烦"：Excel 表头写法五花八门、缺失值和异常值混在一起、多样性指数要在多个表之间倒来倒去、出图还要另装一堆软件。EcoTidy 把这条链路做成一条固定流程。</p>
+
+    <div class="cards">
+      <div class="card reveal">
+        <div class="card-t"><span class="n">1</span>导入：什么格式都能读</div>
+        <div class="card-d">csv / xlsx / txt 通吃，自动识别数据类型与列名。带单位的 <code>树高（m）</code>、英文的 <code>TreeHeight</code> 都认；认不出来会弹出列映射让你手工指定，不会卡死。</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-t"><span class="n">2</span>清洗：按生态学规则判异常</div>
+        <div class="card-d">不是简单的 3σ。缺失值按「同样方 → 同物种 → 整列」三级回退填补；<b>结构性空白</b>（灌木本来就没有胸径）绝不用其它物种的值顶替。每步改动都写进日志，可直接引到论文方法部分。</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-t"><span class="n">3</span>计算：常用生态指标齐备</div>
+        <div class="card-d">群落结构（密度／频度／优势度／重要值）、多样性（Shannon／Simpson／Pielou／Margalef）、环境时序统计、土壤指标、实验生态指标。</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-t"><span class="n">4</span>出图：三套配色，含纯黑白</div>
+        <div class="card-d">灰阶／彩色／<b>纯黑白</b>（靠底纹区分系列）三种方案，导出 PNG（300dpi 可投稿）与 SVG（矢量可无损放大）。黑白方案适合黑白打印与色觉障碍读者。</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-t"><span class="n">5</span>导出：一次拿到全部成果</div>
+        <div class="card-d">数据表、指标表、清洗日志、图表、分析报告一次性打包导出，报告里写明数据情况、清洗统计、指标含义与数据质量评价。</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-t"><span class="n">6</span>中英文实时切换</div>
+        <div class="card-d">界面可随时切换中英文，无需重启。报告正文跟随语言设置；<b>数据列名始终保持中文</b>，保证与你的原始数据对得上。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 五步流程 ======================= -->
+<section id="flow">
+  <div class="wrap">
+    <div class="sec-label reveal">Workflow</div>
+    <h2 class="reveal">五步流程</h2>
+    <p class="sec-intro reveal">打开软件后只需按顶部步骤条从左到右走一遍。每一步都告诉你"需要什么、产出什么"。</p>
+
+    <div class="flow reveal">
+      <div class="flow-item">
+        <div class="flow-num">STEP 01</div>
+        <div class="flow-t">导入数据</div>
+        <div class="flow-d">选择文件或直接拖进窗口，自动识别类型与列名。</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">STEP 02</div>
+        <div class="flow-t">清洗数据</div>
+        <div class="flow-d">异常值、缺失值、重复记录一次处理完，附完整日志。</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">STEP 03</div>
+        <div class="flow-t">计算指标</div>
+        <div class="flow-d">按数据类型自动勾选指标组，产出指标表。</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">STEP 04</div>
+        <div class="flow-t">绘制图表</div>
+        <div class="flow-d">推荐图表类型，选配色与格式后导出图片。</div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">STEP 05</div>
+        <div class="flow-t">导出报告</div>
+        <div class="flow-d">全部成果打包导出为完整成果文件夹。</div>
+      </div>
+    </div>
+
+    <div class="tip reveal">
+      <b>第一次用？</b>直接点【载入示例数据】，10 秒就能看到完整效果，不用先准备数据。
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 数据要求 ======================= -->
+<section id="data">
+  <div class="wrap">
+    <div class="sec-label reveal">Data Format</div>
+    <h2 class="reveal">你的数据要长什么样</h2>
+    <p class="sec-intro reveal">支持 csv / xlsx / txt（Excel 另存为这三种都行）。列名不必一模一样，带单位、带括号、中英文都能识别。</p>
+
+    <div class="two-col">
+      <div class="reveal">
+        <div class="mini"><b>样方群落数据</b> · 野外样方调查记录</div>
+        <table class="tbl">
+          <tr><th style="width:34%">列名</th><th>说明</th></tr>
+          <tr><td class="req">样方号<span class="tag">必需</span></td><td>采样方块编号，如 Q1、A-3</td></tr>
+          <tr><td class="req">物种<span class="tag">必需</span></td><td>物种名称或代码</td></tr>
+          <tr><td class="req">株数<span class="tag">必需</span></td><td>该样方内该物种的个体数</td></tr>
+          <tr><td>胸径</td><td>乔木胸高直径（cm），参与优势度计算</td></tr>
+          <tr><td>盖度</td><td>覆盖百分比，<b>0~100 或 0~1 都可</b>，自动统一</td></tr>
+          <tr><td>树高</td><td>树高（m）</td></tr>
+          <tr><td>基径</td><td>基部直径（cm），常用于灌丛</td></tr>
+          <tr><td>冠幅</td><td>树冠幅度（cm）</td></tr>
+        </table>
+        <div class="opt-note" style="font-size:12.5px;color:var(--text-weak)">后五列都是选填：有就一起导入、清洗、导出，没有不影响指标计算。</div>
+      </div>
+
+      <div class="reveal">
+        <div class="mini"><b>传感器时序数据</b> · 连续自动记录</div>
+        <table class="tbl">
+          <tr><th style="width:34%">列名</th><th>说明</th></tr>
+          <tr><td class="req">时间<span class="tag">必需</span></td><td>支持 Excel 序列号、多种日期写法</td></tr>
+          <tr><td>气温</td><td>空气温度</td></tr>
+          <tr><td>相对湿度</td><td>0~100 或 0~1 都可</td></tr>
+          <tr><td>土壤温度</td><td>地温</td></tr>
+          <tr><td>光合有效辐射</td><td>光强 / PAR / PPFD</td></tr>
+        </table>
+
+        <div class="mini" style="margin-top:22px"><b>普通实验统计</b> · 室内控制实验</div>
+        <table class="tbl">
+          <tr><th style="width:34%">列名</th><th>说明</th></tr>
+          <tr><td>处理组</td><td>试验处理 / 组别</td></tr>
+          <tr><td>重复</td><td>重复编号</td></tr>
+          <tr><td>你的指标列</td><td>任意数值列，如萌发率、生物量</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="tip reveal">
+      识别不了列名也没关系 —— 会弹出<b>列映射</b>对话框让你手工指定对应关系，不会让你无路可走。
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 配色演示 ======================= -->
+<section id="palette">
+  <div class="wrap">
+    <div class="sec-label reveal">Charts</div>
+    <h2 class="reveal">出图：三套配色</h2>
+    <p class="sec-intro reveal">同一份数据可以换三种配色方案。纯黑白方案靠底纹和线型区分系列，印在黑白纸上依然分得清。</p>
+
+    <div class="palettes">
+      <div class="pal reveal">
+        <div class="pal-bars">
+          <i style="height:46%;background:#1F2329"></i>
+          <i style="height:72%;background:#6E737A"></i>
+          <i style="height:34%;background:#A8ACB2"></i>
+          <i style="height:88%;background:#D8DADF"></i>
+        </div>
+        <div class="pal-n">灰阶</div>
+        <div class="pal-d">默认。投稿与打印都稳妥</div>
+      </div>
+      <div class="pal reveal">
+        <div class="pal-bars">
+          <i style="height:46%;background:#1F2329"></i>
+          <i style="height:72%;background:#4A5058"></i>
+          <i style="height:34%;background:#8C9096"></i>
+          <i style="height:88%;background:#C4C7CC"></i>
+        </div>
+        <div class="pal-n">单色系</div>
+        <div class="pal-d">同一色相不同深浅，层次清晰</div>
+      </div>
+      <div class="pal reveal">
+        <div class="pal-bars">
+          <i style="height:46%;background:#1F2329"></i>
+          <i style="height:72%;background:repeating-linear-gradient(45deg,#1F2329 0 3px,#fff 3px 6px);border:1px solid #1F2329"></i>
+          <i style="height:34%;background:repeating-linear-gradient(90deg,#fff 0 3px,#1F2329 3px 4px);border:1px solid #1F2329"></i>
+          <i style="height:88%;background:#fff;border:1px solid #1F2329"></i>
+        </div>
+        <div class="pal-n">纯黑白</div>
+        <div class="pal-d">靠底纹区分，黑白打印也分得清</div>
+      </div>
+    </div>
+
+    <div class="tip reveal">
+      导出格式支持 <b>PNG</b>（300 dpi，可直接投稿或插入文档）与 <b>SVG</b>（矢量，可无损放大、便于后期调整），也可以两者都要。
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 下载 ======================= -->
+<section class="download" id="download">
+  <div class="wrap">
+    <div class="sec-label reveal" style="color:rgba(255,255,255,.5)">Download</div>
+    <h2 class="reveal">下载 EcoTidy</h2>
+    <p class="sec-intro reveal">绿色免安装：解压后双击 <code style="background:rgba(255,255,255,.14);color:#fff">EcoTidy.exe</code> 即可运行。不用装 Python，不用装任何依赖。</p>
+
+    <div class="dl-box reveal">
+      <div class="dl-info">
+        <div class="dl-mark">E</div>
+        <div>
+          <div class="dl-name">EcoTidy_v1.0_win64.zip</div>
+          <div class="dl-sub">Windows 64 位 · 约 86 MB · v1.0</div>
+        </div>
+      </div>
+      <div class="dl-actions">
+        <a class="btn btn-white" href="https://github.com/zhou634/EcoTidy/releases/download/v1.0/EcoTidy_v1.0_win64.zip">下载压缩包</a>
+        <a class="btn btn-line" href="https://github.com/zhou634/EcoTidy/releases" target="_blank" rel="noopener">所有版本</a>
+      </div>
+    </div>
+
+    <div class="req-grid reveal">
+      <div class="req-item"><div class="req-k">系统</div><div class="req-v">Windows 10 / 11 64 位</div></div>
+      <div class="req-item"><div class="req-k">体积</div><div class="req-v">解压后约 202 MB</div></div>
+      <div class="req-item"><div class="req-k">依赖</div><div class="req-v">无（已内置运行库）</div></div>
+      <div class="req-item"><div class="req-k">网络</div><div class="req-v">完全离线，不联网</div></div>
+    </div>
+
+    <div class="tip reveal" style="background:rgba(255,255,255,.08);border-left-color:#fff;color:rgba(255,255,255,.78);margin-top:26px">
+      <b style="color:#fff">注意：</b>请解压<b style="color:#fff">整个文件夹</b>后再运行，不要只把 <code style="background:rgba(255,255,255,.14);color:#fff">EcoTidy.exe</code> 单独复制出来 —— 它旁边的文件和子文件夹是运行必需的。
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 常见问题 ======================= -->
+<section id="faq" style="border-bottom:1px solid var(--line-soft)">
+  <div class="wrap">
+    <div class="sec-label reveal">FAQ</div>
+    <h2 class="reveal">常见问题</h2>
+    <p class="sec-intro reveal">多数疑问在软件内的帮助面板（按 <code>F1</code>）里也有答案。</p>
+
+    <div class="faq reveal">
+      <details open>
+        <summary>会修改我的原始数据文件吗？</summary>
+        <div class="ans">不会。软件只读取原始文件，清洗与计算都在内存中进行。所有成果（清洗后的数据、指标表、图表、报告）都导出到新文件，原始文件保持原样。</div>
+      </details>
+      <details>
+        <summary>需要联网吗？会上传数据吗？</summary>
+        <div class="ans">完全离线运行：不联网、不上传任何数据、不需要账号。断网状态下全部功能可用，适合有数据保密要求的场景。</div>
+      </details>
+      <details>
+        <summary>图表里的中文会不会变成方框？</summary>
+        <div class="ans">不会。软件随包内置思源黑体（SIL OFL 许可），用绝对路径注册字体，不依赖目标机器装了什么字体，换电脑也一样正常显示。</div>
+      </details>
+      <details>
+        <summary>我的列名跟要求的不一样，能识别吗？</summary>
+        <div class="ans">大部分能。带单位的 <code>树高（m）</code>、<code>胸径(cm)</code>，英文的 <code>TreeHeight</code>、<code>DBH</code> 都能识别。实在认不出来会弹出列映射对话框，让你手工把原始列名对应到标准字段，不会卡住。</div>
+      </details>
+      <details>
+        <summary>数据存在哪里？换电脑会丢吗？</summary>
+        <div class="ans">历史任务与设置存在 <code>%APPDATA%\EcoTidy</code>，导出的成果默认在「我的文档\EcoTidy」。换电脑时把 <code>%APPDATA%\EcoTidy</code> 一起带走，历史任务就还在。若该目录不可写，软件会自动改存到别处并在界面顶部说明实际位置。</div>
+      </details>
+      <details>
+        <summary>被安全软件拦截了怎么办？</summary>
+        <div class="ans">打包工具（PyInstaller）生成的程序常被误报，属于普遍现象。把 EcoTidy 文件夹加入白名单即可。程序不含任何联网行为，可自行用抓包工具验证。</div>
+      </details>
+      <details>
+        <summary>怀疑运行不正常，怎么自查？</summary>
+        <div class="ans">在命令行运行 <code>EcoTidy.exe --selftest</code>，它会跑一遍完整流程（读数据 → 清洗 → 计算 → 绘图 → 导出 → 建界面），并把逐项结果写到 <code>%APPDATA%\EcoTidy\temp\EcoTidy_自检结果.txt</code>。</div>
+      </details>
+      <details>
+        <summary>开源吗？能自己改吗？</summary>
+        <div class="ans">代码在 <a href="https://github.com/zhou634/EcoTidy" target="_blank" rel="noopener" style="border-bottom:1px solid var(--line)">GitHub</a> 上，采用 MIT 许可，可自由使用、修改、分发（含商业用途）。仓库里含 481 项自动化测试与打包说明。</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 页脚 ======================= -->
+<footer>
+  <div class="wrap foot">
+    <div>EcoTidy v1.0 · MIT 许可 · 内置思源黑体（SIL OFL 1.1）</div>
+    <div>
+      <a href="https://github.com/zhou634/EcoTidy" target="_blank" rel="noopener">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/zhou634/EcoTidy/releases" target="_blank" rel="noopener">发布版本</a>
+      &nbsp;·&nbsp;
+      <a href="#top">回到顶部</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---------- 顶部进度条 ---------- */
+(function(){
+  const bar = document.getElementById('prog');
+  let raf = null;
+  function update(){
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = (h > 0 ? Math.min(100, (window.scrollY / h) * 100) : 0) + '%';
+    raf = null;
+  }
+  window.addEventListener('scroll', function(){
+    if (!raf) raf = requestAnimationFrame(update);
+  }, {passive:true});
+  update();
+})();
+
+/* ---------- 滚动入场 ----------
+   用 IntersectionObserver 做一次性淡入上移。
+   为什么不用滚动事件逐个判断：那样每帧都要读元素位置，长页面上会掉帧。 */
+(function(){
+  const items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    items.forEach(function(el){ el.classList.add('in'); });
+    return;
+  }
+  const io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (!entry.isIntersecting) return;
+      // 同一屏内的元素依次入场，做出轻微的错落感
+      const siblings = Array.prototype.slice.call(
+        entry.target.parentElement.querySelectorAll('.reveal'));
+      const idx = Math.max(0, siblings.indexOf(entry.target));
+      entry.target.style.transitionDelay = Math.min(idx * 70, 350) + 'ms';
+      entry.target.classList.add('in');
+      io.unobserve(entry.target);
+    });
+  }, {rootMargin:'0px 0px -8% 0px', threshold:0.08});
+  items.forEach(function(el){ io.observe(el); });
+})();
+
+/* ---------- 图表柱状：进入视口时重新播放动画 ---------- */
+(function(){
+  const canvases = document.querySelectorAll('.mock-canvas, .pal-bars');
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (!entry.isIntersecting) return;
+      entry.target.querySelectorAll('i').forEach(function(bar, i){
+        bar.style.animation = 'none';
+        void bar.offsetWidth;                    // 强制回流以重启动画
+        bar.style.animation = 'grow 1.2s cubic-bezier(.2,.8,.2,1) both';
+        bar.style.animationDelay = (i * 90) + 'ms';
+      });
+      io.unobserve(entry.target);
+    });
+  }, {threshold:0.3});
+  canvases.forEach(function(el){ io.observe(el); });
+})();
+
+/* ---------- 下载计数提示（纯前端，失败不影响页面）---------- */
+(function(){
+  const link = document.querySelector('.dl-actions .btn-white');
+  if (!link) return;
+  link.addEventListener('click', function(){
+    const old = link.textContent;
+    link.textContent = '正在开始下载…';
+    link.style.pointerEvents = 'none';
+    setTimeout(function(){
+      link.textContent = old;
+      link.style.pointerEvents = '';
+    }, 2600);
+  });
+})();
+</script>
+</body>
+</html>

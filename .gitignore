@@ -67,3 +67,7 @@ Thumbs.db
 Desktop.ini
 desktop.ini
 .DS_Store
+
+# ---------- 发布包（用 GitHub Releases 分发，不入库） ----------
+*.zip
+release/*.zip
